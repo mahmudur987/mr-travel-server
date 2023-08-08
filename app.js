@@ -9,6 +9,7 @@ const cors = require("cors");
 const port = process.env.PORT || 4000;
 const data = require("./data.json");
 const events = require("./models/travelModel");
+const users = require("./models/userModel");
 // middlewere
 app.use(cors());
 app.use(express.json());
@@ -44,15 +45,13 @@ app.use(
 );
 
 app.get("/", async (req, res) => {
-  const result = await events.find({});
-
-  res.send({ data: result.length, result });
+  res.send({ data: "hellow world" });
 });
-app.post("/travel", async (req, res) => {
+app.put("/users", async (req, res) => {
   console.log(data);
-  const result = await events.insertMany(data);
+  // const result = await users.updateMany({}, { $set: { role: "user" } });
 
-  res.send(result);
+  // res.send(result);
 });
 
 app.listen(port, () => {

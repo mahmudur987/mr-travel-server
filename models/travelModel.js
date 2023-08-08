@@ -33,8 +33,11 @@ const travelSchema = new mongoose.Schema({
   },
   bookedmember: [
     {
-      id: ObjectId,
-      name: String,
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "users", // Replace "User" with the appropriate model name for the users collection
+      },
+      userName: String,
     },
   ],
   description: {

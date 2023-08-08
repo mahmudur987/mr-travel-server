@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-const travelSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
@@ -32,8 +32,13 @@ const travelSchema = new mongoose.Schema({
     type: String,
     default: Date.now(),
   },
+  role: {
+    type: String,
+    enum: ["admin", "user"],
+    default: "user",
+  },
 });
 
-const users = mongoose.model("User", travelSchema);
+const users = mongoose.model("User", userSchema);
 
 module.exports = users;

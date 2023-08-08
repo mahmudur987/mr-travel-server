@@ -10,7 +10,9 @@ const {
   GraphQLBoolean,
   GraphQLNonNull,
   GraphQLID,
+  GraphQLEnumType,
 } = require("graphql");
+const { ObjectId } = require("mongodb");
 
 // Define the planingType
 const planingType = new GraphQLObjectType({
@@ -27,7 +29,8 @@ const bookedMemberType = new GraphQLObjectType({
   name: "BookedMember",
   fields: () => ({
     id: { type: GraphQLID },
-    name: { type: GraphQLString },
+    userId: { type: GraphQLID },
+    userName: { type: GraphQLString },
   }),
 });
 
@@ -75,6 +78,15 @@ const userType = new GraphQLObjectType({
     address: { type: GraphQLString },
     password: { type: GraphQLString },
     joinDate: { type: GraphQLString },
+    role: {
+      type: new GraphQLEnumType({
+        name: "Role",
+        values: {
+          admin: { value: "admin" },
+          user: { value: "user" },
+        },
+      }),
+    },
   }),
 });
 // Define the root query
@@ -87,13 +99,26 @@ const RootQuery = new GraphQLObjectType({
         return events.find();
       },
     },
-
     getOneEvent: {
       type: travelType,
       args: { id: { type: GraphQLNonNull(GraphQLID) } },
       resolve(parent, args) {
-        console.log(args);
         return events.findById(args.id);
+      },
+    },
+    getEventsbyBookingUserId: {
+      type: new GraphQLList(travelType),
+      args: { id: { type: GraphQLNonNull(GraphQLID) } },
+      resolve: async (parent, { id }) => {
+        try {
+          const eventsData = await events.find({
+            bookedmember: { $elemMatch: { userId: id } },
+          });
+
+          return eventsData;
+        } catch (error) {
+          throw new Error("Error finding events data");
+        }
       },
     },
     users: {
@@ -105,7 +130,7 @@ const RootQuery = new GraphQLObjectType({
     user: {
       type: userType,
       args: {
-        name: { type: GraphQLNonNull(GraphQLString) },
+        email: { type: GraphQLNonNull(GraphQLString) },
       },
       resolve(parent, args) {
         return users.findOne(args);
@@ -146,13 +171,95 @@ const Mutation = new GraphQLObjectType({
         });
 
         if (alredyUser) {
-          console.log(alredyUser);
-
           return alredyUser;
         }
 
         const newUser = new users(args);
         return newUser.save();
+      },
+    },
+
+    addMemberToEvent: {
+      type: travelType,
+      args: {
+        id: { type: GraphQLNonNull(GraphQLID) },
+        memberId: { type: GraphQLNonNull(GraphQLID) },
+        memberName: { type: GraphQLNonNull(GraphQLString) },
+      },
+      resolve: async (parent, { id, memberId, memberName }) => {
+        try {
+          const event = await events.findById(id);
+          if (!event) {
+            throw new Error("Event not found");
+          }
+          const alreadybooked = event.bookedmember.find(
+            (x) => x.userId.toString() === memberId
+          );
+
+          if (alreadybooked) {
+            return new Error("You alredy booked this Event");
+          }
+          event.bookedmember.push({ userId: memberId, userName: memberName });
+          event.save();
+          return event;
+        } catch (err) {
+          throw new Error(err.message);
+        }
+      },
+    },
+    updateUser: {
+      type: userType,
+      args: {
+        id: { type: GraphQLNonNull(GraphQLID) },
+        phoneNumber: { type: GraphQLNonNull(GraphQLString) },
+        address: { type: GraphQLNonNull(GraphQLString) },
+      },
+      resolve: async (parent, { id, phoneNumber, address }) => {
+        try {
+          // Find the user by ID
+          const user = await users.findById(id);
+
+          if (!user) {
+            throw new Error("User not found");
+          }
+
+          // Update the phoneNumber and address fields if provided
+          if (phoneNumber) {
+            user.phoneNumber = phoneNumber;
+          }
+
+          if (address) {
+            user.address = address;
+          }
+          await users.findByIdAndUpdate(id, { $set: user });
+          console.log(user);
+
+          return user;
+        } catch (error) {
+          throw new Error("Failed to update user");
+        }
+      },
+    },
+    deleteUser: {
+      type: userType,
+      args: {
+        id: { type: GraphQLNonNull(GraphQLID) },
+      },
+      resolve: async (parent, { id }) => {
+        try {
+          const user = await users.findById(id);
+
+          if (!user) {
+            throw new Error("User not found");
+          }
+
+          await users.findByIdAndRemove(id);
+          console.log(user);
+
+          return user;
+        } catch (error) {
+          throw new Error("Failed to update user");
+        }
       },
     },
   },
