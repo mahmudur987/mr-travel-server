@@ -1,8 +1,8 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const { graphqlHTTP } = require("express-graphql");
-const { buildSchema } = require("graphql");
-const schema = require("./schema/schema");
+const RootQuery = require("./schema/query");
+const Mutation = require("./schema/mutation");
 require("dotenv").config();
 const app = express();
 const cors = require("cors");
@@ -10,6 +10,7 @@ const port = process.env.PORT || 4000;
 const data = require("./data.json");
 const events = require("./models/travelModel");
 const users = require("./models/userModel");
+const { GraphQLSchema } = require("graphql");
 // middlewere
 app.use(cors());
 app.use(express.json());
@@ -34,7 +35,10 @@ const root = {
     return "Hello world!";
   },
 };
-
+const schema = new GraphQLSchema({
+  query: RootQuery,
+  mutation: Mutation,
+});
 app.use(
   "/graphql",
   graphqlHTTP({

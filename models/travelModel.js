@@ -1,6 +1,4 @@
-const { ObjectId } = require("mongodb");
 const mongoose = require("mongoose");
-const { Schema } = mongoose;
 
 const travelSchema = new mongoose.Schema({
   name: {
